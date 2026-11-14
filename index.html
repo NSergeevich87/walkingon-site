@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Walking On — every walk on one map</title>
+<meta name="description" content="Walking On for iPhone puts every walk you have ever taken on one heat map, so you can see the streets you have not tried yet. Your step count, big, on the first screen. No account, nothing leaves your iPhone.">
+<link rel="canonical" href="https://walkingon.nsergeevich.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Walking On">
+<meta property="og:url" content="https://walkingon.nsergeevich.com/">
+<meta property="og:title" content="Walking On — every walk on one map">
+<meta property="og:description" content="Every walk you have taken, on one heat map — and the streets you have not walked yet. Steps from Apple Health. No account, nothing leaves your iPhone.">
+<meta property="og:image" content="https://walkingon.nsergeevich.com/icon-256.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/icon-256.png">
+<style>
+  :root {
+    --bg-top: #23262b;
+    --bg-bottom: #0d0e10;
+    --panel: rgba(255, 255, 255, 0.04);
+    --line: rgba(255, 255, 255, 0.10);
+    --text: #e9e9ec;
+    --dim: #9a9ca3;
+    --flap: #141416;
+    --flap-edge: #2a2b2f;
+    --flap-text: #f4f1e8;
+    --glow: #5ff59a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; background: var(--bg-bottom); }
+  body {
+    background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 70%) fixed, var(--bg-bottom);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 0 16px 56px; }
+  a { color: var(--text); text-underline-offset: 3px; }
+  a:hover { color: var(--glow); }
+
+  /* The header stands on a heat map drawn like the app's (scripts/site-heatmap.py),
+     fading into the page below and darkened behind the name so it reads. */
+  .hero-map {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 560px;
+    background:
+      radial-gradient(ellipse 520px 300px at 50% 46%, rgba(13, 14, 16, 0.62), rgba(13, 14, 16, 0) 100%),
+      url("heatmap.svg") center 42% / cover no-repeat;
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 58%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 58%, transparent 100%);
+    pointer-events: none;
+  }
+  main { position: relative; }
+  header { padding: 64px 0 36px; text-align: center; }
+  .app-icon {
+    display: block;
+    width: 112px; height: 112px;
+    margin: 0 auto 28px;
+    border-radius: 25px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  }
+
+  /* The name as a split-flap board, like the step count in the app. */
+  .board { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
+  .word { display: flex; gap: 4px; }
+  .flap {
+    position: relative;
+    width: clamp(30px, 7.4vw, 50px);
+    height: clamp(44px, 10.6vw, 72px);
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, #1c1c1f 0%, var(--flap) 50%, #0f0f11 50%, #18181b 100%);
+    border: 1px solid var(--flap-edge);
+    border-radius: 6px;
+    color: var(--flap-text);
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-weight: 700;
+    font-size: clamp(24px, 6vw, 42px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+  }
+  .flap::after {
+    content: "";
+    position: absolute; left: 0; right: 0; top: 50%;
+    height: 1px;
+    background: rgba(0, 0, 0, 0.85);
+  }
+
+  .tagline { color: var(--text); margin-top: 22px; font-size: 18px; text-shadow: 0 1px 12px rgba(0, 0, 0, 0.9), 0 0 3px rgba(0, 0, 0, 0.9); }
+  .store-note {
+    display: inline-block;
+    margin-top: 28px;
+    padding: 12px 22px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(18, 19, 22, 0.82);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    font-weight: 600;
+  }
+  .store-sub { display: block; margin-top: 12px; color: var(--text); font-size: 14px; text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9), 0 0 3px rgba(0, 0, 0, 0.9); }
+
+  section { margin-top: 52px; }
+  h2 {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--dim);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+  }
+  h3 { font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dim); margin: 40px 0 12px; }
+  p + p { margin-top: 12px; }
+
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .feature { border: 1px solid var(--line); background: var(--panel); border-radius: 14px; padding: 16px; }
+  .feature b { display: block; }
+  .feature span { display: block; color: var(--dim); font-size: 14px; margin-top: 4px; }
+
+  ul.list { list-style: none; }
+  ul.list li { padding-left: 20px; position: relative; margin-top: 10px; }
+  ul.list li::before { content: ""; position: absolute; left: 4px; top: 0.7em; width: 6px; height: 6px; border-radius: 50%; background: var(--dim); }
+
+  .price { font-size: 28px; font-weight: 700; margin: 4px 0 8px; }
+  .fineprint { color: var(--dim); font-size: 14px; margin-top: 14px; }
+  .updated, .langs { color: var(--dim); font-size: 14px; margin-bottom: 14px; }
+
+  footer {
+    margin-top: 64px;
+    border-top: 1px solid var(--line);
+    padding-top: 22px;
+    color: var(--dim);
+    font-size: 14px;
+    text-align: center;
+  }
+  footer a { color: var(--dim); }
+</style>
+</head>
+<body>
+<div class="hero-map" aria-hidden="true"></div>
+<main>
+
+  <header>
+    <img class="app-icon" src="icon-256.png" alt="Walking On app icon: two split-flap tiles, a step and a map" width="112" height="112">
+    <h1 class="board" aria-label="Walking On">
+      <span class="word" aria-hidden="true"><span class="flap">W</span><span class="flap">A</span><span class="flap">L</span><span class="flap">K</span><span class="flap">I</span><span class="flap">N</span><span class="flap">G</span></span>
+      <span class="word" aria-hidden="true"><span class="flap">O</span><span class="flap">N</span></span>
+    </h1>
+    <p class="tagline">Every walk on one heat map. See where you haven&rsquo;t been yet.</p>
+    <span class="store-note">Coming soon to the App Store</span>
+    <span class="store-sub">iPhone &middot; iOS 18 or later &middot; English &middot; Русский</span>
+  </header>
+
+  <section>
+    <h2>What it is</h2>
+    <p>Walking On puts every walk you have ever taken on one heat map: the streets you walk most glow brightest; a street with no colour is one you have never turned into. Open the map and the next walk suggests itself.</p>
+    <p>The first screen is your step count for today, big, on a split-flap board, with a ring for your daily goal. Steps come from Apple Health, which already combines your iPhone and Apple Watch.</p>
+    <p>There is no start button. With location access set to &ldquo;Always&rdquo; and Motion &amp; Fitness on, walks are recorded on their own, with the phone in your pocket.</p>
+  </section>
+
+  <section>
+    <h2>Inside</h2>
+    <div class="features">
+      <div class="feature"><b>The heat map of all your walks</b><span>Every route at once — the more often you walk a street, the brighter it glows</span></div>
+      <div class="feature"><b>Walks from Apple Health</b><span>Walking, running and hiking workouts with routes appear on the map</span></div>
+      <div class="feature"><b>Steps, distance, calories</b><span>From Apple Health; calories are an estimate</span></div>
+      <div class="feature"><b>Daily goal and History</b><span>The week at a glance, every month of past days</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Price</h2>
+    <p>Everything is free for 7 days. After that, automatic recording of your own walks needs a one-time purchase:</p>
+    <p class="price">&euro;4.99 <span style="font-size:16px;font-weight:400;color:var(--dim)">once, no subscription</span></p>
+    <p>Steps, the map, History and walks imported from Apple Health stay free without it.</p>
+    <p class="fineprint">Prices may vary by region. Purchases are handled by the App Store.</p>
+  </section>
+
+  <section id="privacy">
+    <h2>Privacy Policy</h2>
+    <p class="langs">English &middot; <a href="#privacy-ru">Русский</a></p>
+    <p class="updated">Effective date: November 14, 2026</p>
+    <p>Walking On keeps everything on your iPhone. We have no servers and no access to your data.</p>
+    <ul class="list">
+      <li><b>No data collection.</b> Walking On does not collect, transmit, sell or share any personal data. There are no accounts, no analytics, no advertising and no third-party SDKs.</li>
+      <li><b>Apple Health.</b> With your permission, the app reads steps, walking and running distance, active energy, workouts and workout routes. It only reads, never writes. This data is used only to show your steps, goal, History and map inside the app. It is never used for advertising, never shared, and never stored in iCloud: routes copied from Apple Health are kept on this iPhone in a folder excluded from backups.</li>
+      <li><b>Location and Motion &amp; Fitness.</b> With your permission, the app uses your location and motion activity to record walks automatically. The recorded walks are stored only on this iPhone and in its device backup, if you have backups turned on.</li>
+      <li><b>Maps.</b> The map is drawn by Apple Maps (MapKit). Map tiles are loaded from Apple under <a href="https://www.apple.com/legal/privacy/">Apple&rsquo;s Privacy Policy</a>; your walks are drawn on top of them on the device and are not sent anywhere.</li>
+      <li><b>Purchases.</b> The free trial and the one-time purchase are processed entirely by Apple through the App Store. We never see your payment details.</li>
+      <li><b>Email.</b> If you write to us from the app, the message is sent from your own mail app and includes the app version, iOS version and iPhone model, so we can help. We use it only to answer you.</li>
+      <li><b>Data deletion.</b> Deleting the app deletes all of its data from your iPhone. Data in Apple Health stays in Apple Health.</li>
+    </ul>
+    <p>If this policy ever changes, the updated version will be posted on this page with a new effective date.</p>
+    <p>Questions? Write to <a href="mailto:walkingon@nsergeevich.com">walkingon@nsergeevich.com</a>.</p>
+
+    <div id="privacy-ru" lang="ru">
+      <h3>Политика конфиденциальности</h3>
+      <p class="updated">Действует с 14 ноября 2026 года</p>
+      <p>Walking On хранит всё на вашем iPhone. У нас нет серверов и нет доступа к вашим данным.</p>
+      <ul class="list">
+        <li><b>Никакого сбора данных.</b> Walking On не собирает, не передаёт, не продаёт и никому не раскрывает персональные данные. Нет аккаунтов, аналитики, рекламы и сторонних SDK.</li>
+        <li><b>Здоровье.</b> С вашего разрешения приложение читает шаги, дистанцию ходьбы и бега, активную энергию, тренировки и маршруты тренировок. Оно только читает и ничего не записывает. Эти данные используются только для того, чтобы показать в приложении шаги, цель, Историю и карту. Они никогда не используются для рекламы, никому не передаются и не хранятся в iCloud: маршруты, скопированные из Здоровья, лежат на этом iPhone в папке, исключённой из резервных копий.</li>
+        <li><b>Геопозиция и «Движение и фитнес».</b> С вашего разрешения приложение использует геопозицию и данные о движении, чтобы само записывать прогулки. Записанные прогулки хранятся только на этом iPhone и в его резервной копии, если она включена.</li>
+        <li><b>Карты.</b> Карту рисуют Карты Apple (MapKit). Подложка карты загружается с серверов Apple по <a href="https://www.apple.com/ru/legal/privacy/">политике конфиденциальности Apple</a>; ваши прогулки рисуются поверх неё на устройстве и никуда не отправляются.</li>
+        <li><b>Покупки.</b> Бесплатный период и разовую покупку полностью проводит Apple через App Store. Ваши платёжные данные мы не видим.</li>
+        <li><b>Письма.</b> Если вы пишете нам из приложения, письмо уходит из вашей почты и содержит версию приложения, версию iOS и модель iPhone, чтобы мы могли помочь. Мы используем его только для ответа.</li>
+        <li><b>Удаление данных.</b> При удалении приложения с iPhone удаляются все его данные. Данные в Здоровье остаются в Здоровье.</li>
+      </ul>
+      <p>Если политика изменится, новая версия появится на этой странице с новой датой. При расхождениях действует английская версия.</p>
+      <p>Вопросы? Пишите на <a href="mailto:walkingon@nsergeevich.com">walkingon@nsergeevich.com</a>.</p>
+    </div>
+  </section>
+
+  <section id="support">
+    <h2>Support</h2>
+    <p>Found a bug, have a question or an idea? Email <a href="mailto:walkingon@nsergeevich.com">walkingon@nsergeevich.com</a> — a person reads every message and replies within a few days. The quickest way is Settings &rarr; Write to the developer in the app: it adds your app version, iOS version and iPhone model.</p>
+    <p lang="ru">Нашли ошибку, есть вопрос или идея? Пишите на <a href="mailto:walkingon@nsergeevich.com">walkingon@nsergeevich.com</a> — каждое письмо читает человек и отвечает в течение нескольких дней. Быстрее всего — из приложения: Настройки &rarr; «Написать разработчику», письмо само добавит версию приложения, iOS и модель iPhone.</p>
+  </section>
+
+  <footer>
+    <p>&copy; 2026 Walking On &middot; <a href="#privacy">Privacy Policy</a> &middot; <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/">Terms of Use (EULA)</a> &middot; <a href="#support">Support</a></p>
+  </footer>
+
+</main>
+</body>
+</html>
